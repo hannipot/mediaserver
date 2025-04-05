@@ -47,10 +47,10 @@ NORDVPN_SERVER=your_preferred_server_location
 
 # Signal-CLI Configuration for notifications
 SIGNAL_PHONE_NUMBER=your_signal_phone_number
-SIGNAL_API_KEY=your_signal_api_key  # If using SendGrid for email notifications
+SIGNAL_API_KEY=your_signal_api_key 
 
 # SendGrid API Key for email notifications (optional)
-SENDGRID_API_KEY=your_sendgrid_api_key
+SENDGRID_API_KEY=your_sendgrid_api_key # If using SendGrid for email notifications
 
 # Docker Configuration (optional)
 DOCKER_COMPOSE_FILE=docker-compose.yml
