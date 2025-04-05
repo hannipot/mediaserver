@@ -1,0 +1,12 @@
+
+groups:
+  - name: container-alerts
+    rules:
+      - alert: ContainerDown
+        expr: up{job="docker", container="your-container-name"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ \$labels.container }} is down"
+          description: "Container {{ \$labels.container }} has been down for more than 5 minutes."

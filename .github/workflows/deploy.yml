@@ -1,0 +1,81 @@
+
+name: Build and Deploy Media Server
+
+on:
+  push:
+    branches:
+      - main  # Workflow wird bei Push auf den "main"-Branch ausgeführt
+  pull_request:
+    branches:
+      - main  # Workflow wird bei Pull-Requests für den "main"-Branch ausgeführt
+
+jobs:
+  test:
+    runs-on: ubuntu-latest  # Die Tests laufen auf einem Ubuntu-Runner
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2  # Checkout des Repositories
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1  # Docker Buildx einrichten
+
+      - name: Build and test Docker containers
+        run: |
+          docker-compose -f docker-compose.yml build  # Baue die Container
+          docker-compose -f docker-compose.yml up -d  # Starte die Container im Hintergrund
+          docker ps  # Überprüfe, ob die Container laufen
+          # Überprüfe, ob der VPN-Tunnel aktiviert ist
+          nordvpn status
+          # Teste, ob der Download mit Transmission oder NZBGet funktioniert (beispielsweise ein Torrent-Download)
+          curl -s https://www.example.com | transmission-cli -  # Beispiel, um einen Download zu simulieren
+          # Überprüfe die Container-Logs
+          docker-compose logs -f
+
+      - name: Send Signal Notification (Test Completed)
+        run: |
+          cd signal-cli
+          ./bin/signal-cli -u YOUR_PHONE_NUMBER send -m "Tests erfolgreich abgeschlossen. Bitte bestätigen Sie das Deployment." YOUR_PHONE_NUMBER
+        env:
+          SIGNAL_API_KEY: ${{ secrets.SIGNAL_API_KEY }}  # Signal API-Key aus GitHub Secrets
+
+  deploy:
+    needs: test  # Der Deploy-Job wird nur ausgeführt, wenn die Tests erfolgreich sind
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2  # Checkout des Repositories
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1  # Docker Buildx einrichten
+
+      - name: Deploy Docker containers
+        run: |
+          docker-compose -f docker-compose.yml pull  # Lade die neuesten Container-Images
+          docker-compose -f docker-compose.yml up -d  # Führe das Deployment durch und starte die Container
+
+      - name: Send Signal Notification (Deployment Complete)
+        run: |
+          cd signal-cli
+          ./bin/signal-cli -u YOUR_PHONE_NUMBER send -m "Deployment erfolgreich abgeschlossen. Alle Services laufen." YOUR_PHONE_NUMBER
+        env:
+          SIGNAL_API_KEY: ${{ secrets.SIGNAL_API_KEY }}  # Signal API-Key aus GitHub Secrets
+
+  # Optional: Job für automatische Rollbacks bei Fehlern
+  rollback:
+    if: failure()  # Wenn der Deployment-Job fehlschlägt, führe diesen Job aus
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2  # Checkout des Repositories
+
+      - name: Rollback Docker containers to last stable version
+        run: |
+          docker-compose -f docker-compose.yml down  # Stoppe und entferne die aktuellen Container
+          docker-compose -f docker-compose.yml up -d  # Starte die vorherige stabile Version
+
+      - name: Send Signal Notification (Rollback)
+        run: |
+          cd signal-cli
+          ./bin/signal-cli -u YOUR_PHONE_NUMBER send -m "Deployment fehlgeschlagen. Rollback wurde durchgeführt." YOUR_PHONE_NUMBER
+        env:
+          SIGNAL_API_KEY: ${{ secrets.SIGNAL_API_KEY }}  # Signal API-Key aus GitHub Secrets

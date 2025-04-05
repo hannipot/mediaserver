@@ -1,0 +1,22 @@
+
+global:
+  scrape_interval: 15s  # Wie oft Prometheus Metriken sammeln soll
+
+scrape_configs:
+  - job_name: 'docker'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['localhost:8080']  # Überwachung der Docker-API
+  - job_name: 'docker-containers'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['localhost:9090']  # Container-Metriken überwachen
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'localhost:9093'  # Hier wird der Alertmanager laufen
+
+rule_files:
+  - "alert.rules"  # Diese Datei enthält die spezifischen Alarme, die wir definiert haben
